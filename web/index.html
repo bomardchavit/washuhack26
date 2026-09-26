@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Same Moon: different time zones, same Moon</title>
+  <meta name="description" content="Same Moon finds the moments when family members far apart can see the same Moon, and tells each of them where to look.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <h1>Same Moon</h1>
+      <p class="tagline">Different time zones. Same Moon.</p>
+      <p class="next" id="nextLine" aria-live="polite">Finding your next shared Moon…</p>
+      <figure class="poem">
+        <blockquote lang="zh">但愿人长久，千里共婵娟</blockquote>
+        <figcaption>May those we love live long, and share this lovely Moon across a thousand miles. <span>Su Shi, Mid-Autumn, 1076</span></figcaption>
+      </figure>
+    </div>
+    <div class="hero-moon">
+      <canvas id="moonCanvas" width="520" height="520" role="img" aria-label="The Moon right now"></canvas>
+      <p class="moon-caption" id="moonCaption"></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="family" aria-labelledby="familyTitle">
+      <h2 id="familyTitle">Who's looking up</h2>
+      <p class="hint">Type it the way you'd say it in the group chat, or edit the list.</p>
+      <form class="say" id="sayForm">
+        <label for="sayInput" class="visually-hidden">Where is everyone?</label>
+        <input id="sayInput" type="text" autocomplete="off"
+               placeholder="I'm at WashU, Mom's in Shanghai and prefers Chinese, Jia's in Toronto">
+        <button type="submit">Add people</button>
+      </form>
+      <p class="say-status" id="sayStatus" aria-live="polite"></p>
+      <ul class="people" id="peopleList"></ul>
+      <div class="row-actions">
+        <button type="button" class="quiet" id="addPerson">Add a person</button>
+        <button type="button" class="quiet" id="loadDemo">Load the demo family</button>
+      </div>
+    </section>
+
+    <section class="shared" aria-labelledby="sharedTitle">
+      <h2 id="sharedTitle">Your next shared Moons</h2>
+      <p class="hint" id="physicsLine"></p>
+      <ol class="windows" id="windowList"></ol>
+    </section>
+
+    <section class="timeline" aria-labelledby="timelineTitle">
+      <h2 id="timelineTitle">When the Moon is up for each of you</h2>
+      <p class="hint">Next 72 hours. Pale bars: the Moon is up. Gold: up for everyone while you're all awake. Dotted: up for everyone, but someone's asleep. Click to move the map.</p>
+      <div class="timeline-wrap"><canvas id="timelineCanvas" role="img" aria-label="Timeline of when the Moon is up for each person"></canvas></div>
+    </section>
+
+    <section class="world" aria-labelledby="worldTitle">
+      <h2 id="worldTitle">The moonlit half of Earth</h2>
+      <p class="hint">The glow is everywhere the Moon is above the horizon; the shadow is night. Watch it slide west as Earth turns.</p>
+      <div class="map-wrap"><canvas id="mapCanvas" role="img" aria-label="World map showing where the Moon is up"></canvas></div>
+      <div class="scrub">
+        <button type="button" id="playBtn" aria-pressed="false">Play the next 72 hours</button>
+        <label for="scrubber" class="visually-hidden">Time</label>
+        <input type="range" id="scrubber" min="0" max="432" step="1" value="0">
+        <output id="scrubLabel" for="scrubber"></output>
+      </div>
+      <p class="map-status" id="mapStatus" aria-live="polite"></p>
+    </section>
+
+    <section class="moment" aria-labelledby="momentTitle">
+      <h2 id="momentTitle">What everyone gets at that moment</h2>
+      <p class="hint">Same Moon posts this in the family's iMessage group, each line in that person's language.</p>
+      <div class="bubble" id="momentBubble"></div>
+    </section>
+
+    <section class="postcard" aria-labelledby="postcardTitle">
+      <h2 id="postcardTitle">The postcard afterwards</h2>
+      <p class="hint">Add the two photos from the moment. Until then you'll see the Moon exactly as each of you would see it, upside down if you're south of the equator.</p>
+      <div class="photo-inputs" id="photoInputs"></div>
+      <canvas id="postcardCanvas" width="1200" height="760" role="img" aria-label="Shared Moon postcard"></canvas>
+      <button type="button" id="downloadPostcard">Download postcard</button>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>How it works.</strong> Physics does the facts, AI does the talking. Moon and Sun positions are computed in your browser from orbital elements and checked against published moonrise tables. Times, directions and altitudes never come from a language model.</p>
+    <p><strong>Privacy.</strong> City names only. No GPS, no contacts, no message history.</p>
+    <p>Built at the HackWashU Fall AI Build Challenge, September 25–27, 2026, with AI-assisted development (Claude).</p>
+  </footer>
+
+  <script src="../engine/astro.js"></script>
+  <script src="../engine/cities.js"></script>
+  <script src="../engine/windows.js"></script>
+  <script src="../engine/messages.js"></script>
+  <script src="../engine/parse.js"></script>
+  <script src="../engine/online.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
