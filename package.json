@@ -1,0 +1,19 @@
+{
+  "name": "same-moon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "An iMessage agent that finds the moments when family members far apart can see the same Moon, and tells each of them where to look, in their own language.",
+  "license": "MIT",
+  "engines": { "node": ">=18.17" },
+  "scripts": {
+    "test": "node --test test/engine.test.js test/agent.test.mjs",
+    "demo": "node agent/sim.mjs --demo",
+    "sim": "node agent/sim.mjs",
+    "agent": "node agent/photon.mjs",
+    "web": "npx --yes serve . -l 5173",
+    "fetch-map": "node scripts/fetch-map.mjs"
+  },
+  "dependencies": {
+    "spectrum-ts": "^12.7.0"
+  }
+}
