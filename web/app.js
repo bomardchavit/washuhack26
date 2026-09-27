@@ -179,12 +179,14 @@
     var XT = function (t) { return gutter + plotW * (t - state.start) / (HOURS * 3600000); };
     var lead = state.people[0];
 
-    // hour ticks in the first person's time zone
+    // hour ticks in the first person's time zone; labels thin out on narrow screens so they never collide
     ctx.font = '12px Karla, sans-serif'; ctx.textBaseline = 'middle';
+    var labelEvery = plotW / 12 >= 46 ? 360 : plotW / 6 >= 38 ? 720 : 1440;
     for (var i = 0; i < n; i++) {
       var lm = tr.rows[0].samples[i].localMinutes;
       if (lm % 360 === 0) {
         ctx.fillStyle = 'rgba(239,230,207,0.12)'; ctx.fillRect(X(i), top - 6, 1, rows * rowH + 6);
+        if (lm % labelEvery !== 0) continue;
         ctx.fillStyle = '#8a94b8';
         var label = lm === 0 ? W.formatDate(tr.times[i], lead.tz).replace(/,.*$/, '') : W.formatTime(tr.times[i], lead.tz).replace(':00', '');
         ctx.fillText(label, X(i) + 3, 14);

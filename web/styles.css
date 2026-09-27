@@ -72,6 +72,8 @@ main > section { padding: 2.6rem 0; border-top: 1px solid var(--line); }
   display: grid; grid-template-columns: minmax(110px, 1fr) minmax(170px, 1.6fr) minmax(120px, 1fr) auto auto;
   gap: 0.5rem; align-items: center;
 }
+.people li > * { min-width: 0; }
+.people li input[type=text], .people li select { width: 100%; } /* long city names must not widen the grid */
 .people label.owl { font-size: 0.9rem; color: var(--mist); white-space: nowrap; }
 .people button.remove { background: transparent; color: var(--mist); border: 1px solid var(--line); padding: 0.45rem 0.8rem; font-weight: 500; }
 .row-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
@@ -123,5 +125,8 @@ footer strong { color: var(--pearl); }
   .hero-moon { order: -1; }
   .people li { grid-template-columns: 1fr 1fr; }
   .windows button { grid-template-columns: 1fr; }
+  .windows .who { flex-direction: column; }
+  .windows .who span { white-space: normal; }
+  .windows .who em { white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
