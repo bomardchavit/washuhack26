@@ -48,3 +48,31 @@ test('no postcard image without real photo bytes (e.g. the offline demo): captio
   const out = await b.handle({ spaceId: 'f', senderId: 'ethan', attachment: {}, at });
   assert.ok(!out.some((a) => a.type === 'postcard') && out.some((a) => /One Moon\./.test(a.text || '')));
 });
+
+test('Spectrum messages become brain events: text, photos (HEIC too), poll votes; ids are anonymous', async () => {
+  const { toEvent, personId } = await import('../agent/events.mjs');
+  const sender = { __platform: 'imessage', id: '+13145550100' };
+  const text = toEvent('chat', { sender, content: { type: 'text', text: 'when' } });
+  assert.strictEqual(text.text, 'when');
+  assert.strictEqual(text.senderId, personId(sender));
+  assert.ok(!/3145550100/.test(text.senderId));
+  const heic = toEvent('chat', { sender, content: { type: 'attachment', name: 'IMG_0001.HEIC', mimeType: 'application/octet-stream', read: async () => Buffer.from('x') } });
+  assert.strictEqual(heic.attachment.name, 'IMG_0001.HEIC');
+  assert.deepStrictEqual(await heic.attachment.read(), Buffer.from('x'));
+  assert.strictEqual(toEvent('chat', { sender, content: { type: 'attachment', name: 'notes.pdf', mimeType: 'application/pdf' } }), null);
+  const vote = (title, selected) => toEvent('chat', { sender, content: { type: 'poll_option', option: { title }, selected, title } });
+  assert.strictEqual(vote('2) Mon 6:00 AM St. Louis time, 2 hours', true).text, '2');
+  assert.strictEqual(vote('2) Mon 6:00 AM St. Louis time, 2 hours', false), null); // un-vote
+  assert.strictEqual(toEvent('chat', { sender, content: { type: 'reaction', emoji: '❤️' } }), null);
+});
+
+test('window choices also go out as a poll whose options map back to 1-3', async () => {
+  const b = createBrain({ useNetwork: false });
+  const out = await b.handle({ spaceId: 'f', senderId: 'ethan', senderName: 'Ethan', text: "I'm at WashU, Mom's in Shanghai", at: new Date('2026-09-26T18:00:00Z') });
+  const poll = out.find((a) => a.type === 'poll');
+  assert.strictEqual(poll.options.length, 3);
+  assert.match(poll.options[0], /^1\) Sun 6:00 AM St\. Louis time, /);
+  const { toEvent } = await import('../agent/events.mjs');
+  const vote = toEvent('f', { sender: { id: 'x' }, content: { type: 'poll_option', option: { title: poll.options[1] }, selected: true } });
+  assert.match((await b.handle(Object.assign(vote, { at: new Date('2026-09-26T18:01:00Z') })))[0].text, /^Locked in/);
+});

@@ -15,10 +15,10 @@
 //   message.react(emoji); <provider>(app).space.get(id) rebuilds a Space after a restart.
 // If the SDK changes shape, only this file needs updating; the brain is platform-agnostic.
 import './env.mjs';
-import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Spectrum, attachment, poll } from 'spectrum-ts';
 import { createBrain } from './brain.mjs';
+import { toEvent } from './events.mjs';
 import { createLLM } from './llm.mjs';
 import { composePostcard } from './postcard.mjs';
 import { fileStore } from './store.mjs';
@@ -49,15 +49,11 @@ const brain = createBrain({
   useNetwork: process.env.SAME_MOON_OFFLINE !== '1' // offline: built-in cities only, no cloud forecast
 });
 const spaces = new Map(); // spaceId -> Space, so the scheduler can post later
+const noPolls = new Set(); // spaces where the platform skipped a poll (the terminal has none); the text list covers it
 
 console.log(`Same Moon is listening on ${useTerminal ? 'the terminal' : 'iMessage'}` +
   (llm ? ` with ${llm.model}` : ' (no ANTHROPIC_API_KEY: rules only)') +
   (clockOffset ? `. Rehearsal clock: ${now().toISOString()}` : '') + '.');
-
-// A stable anonymous id per person: phone numbers and emails never reach the store.
-function personId(user) {
-  return user && user.id ? createHash('sha256').update(String(user.id)).digest('hex').slice(0, 16) : 'unknown';
-}
 
 async function spaceFor(spaceId) {
   let space = spaces.get(spaceId);
@@ -66,23 +62,6 @@ async function spaceFor(spaceId) {
     spaces.set(spaceId, space);
   }
   return space;
-}
-
-const IMAGE = /^image\//i, IMAGE_NAME = /\.(heic|heif|jpe?g|png|webp|gif)$/i;
-
-/** Translate a Spectrum message into a brain event, or null for things the brain doesn't need. */
-function toEvent(spaceId, message) {
-  const c = message.content || {};
-  const evt = { spaceId, senderId: personId(message.sender), at: now() };
-  if (c.type === 'text') evt.text = c.text;
-  else if (c.type === 'attachment' && (IMAGE.test(c.mimeType || '') || IMAGE_NAME.test(c.name || ''))) {
-    evt.attachment = { name: c.name, mimeType: c.mimeType, read: () => c.read() };
-  } else if (c.type === 'poll_option' && c.selected) {
-    const pick = /^(\d)\)/.exec(c.option && c.option.title || ''); // our options start with "1)", "2)", ...
-    if (!pick) return null;
-    evt.text = pick[1];
-  } else return null; // reactions, typing, stickers, un-votes, ...
-  return evt;
 }
 
 async function sendPostcard(space, shots) {
@@ -96,7 +75,9 @@ async function deliver(actions, inbound) {
       const space = await spaceFor(a.spaceId);
       if (a.type === 'send') await app.send(space, a.text);
       else if (a.type === 'react' && inbound) await inbound.react(a.emoji);
-      else if (a.type === 'poll' && !useTerminal) await app.send(space, poll(a.title, a.options)); // "reply 1-3" was already sent
+      else if (a.type === 'poll' && !noPolls.has(a.spaceId)) {
+        if (!(await app.send(space, poll(a.title, a.options)))) noPolls.add(a.spaceId);
+      }
       else if (a.type === 'postcard') await sendPostcard(space, a.shots); // the text caption follows as its own action
     } catch (err) {
       console.error(`Could not ${a.type}:`, err && err.message || err);
@@ -119,7 +100,7 @@ process.once('SIGTERM', () => stop().then(() => process.exit(0)));
 for await (const [space, message] of app.messages) {
   if (message.direction === 'outbound' || (message.sender && message.sender.kind === 'agent')) continue;
   spaces.set(space.id, space);
-  const evt = toEvent(space.id, message);
+  const evt = toEvent(space.id, message, now());
   if (!evt) continue;
   try {
     await space.responding(async () => deliver(await brain.handle(evt), message));

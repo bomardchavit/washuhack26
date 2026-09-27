@@ -143,6 +143,14 @@ export function createBrain(opts = {}) {
     }).join('; ');
   }
 
+  /** The same choices as a native poll, where the platform has one. A vote arrives as "1", "2" or "3". */
+  function windowPoll(f, spaceId, windows, max = 3) {
+    const shown = windows.slice(0, max), lead = f.members[0];
+    if (shown.length < 2 || !lead) return [];
+    return [{ type: 'poll', spaceId, title: 'Which shared Moon?', options: shown.map((w, i) =>
+      (i + 1) + ') ' + W.formatDayTime(w.start, lead.tz) + ' ' + lead.city + ' time, ' + W.humanDuration(w.durationMin)) }];
+  }
+
   function momentFor(f, at, endAt, simulated) {
     return M.momentMessage(people(f), at, endAt, { simulated });
   }
@@ -268,7 +276,7 @@ export function createBrain(opts = {}) {
       if (!target) return [send(spaceId, 'Tell me your city first, like "I\'m in St. Louis".')];
       target.nightOwl = true; save();
       const windows = await computeWindows(f, spaceId, at);
-      return [send(spaceId, 'Got it, ' + target.name + " doesn't mind late nights.\n\n" + M.windowsText(windows))];
+      return [send(spaceId, 'Got it, ' + target.name + " doesn't mind late nights.\n\n" + M.windowsText(windows))].concat(windowPoll(f, spaceId, windows));
     }
     if (/^\/?(status|who)\b/.test(lower)) {
       const now = f.scheduled && f.scheduled.sent && !f.scheduled.closed;
@@ -282,7 +290,7 @@ export function createBrain(opts = {}) {
     if (/^\/?(when|moon|next|find|plan)\b/.test(lower)) {
       if (f.members.length < 2) return [send(spaceId, 'I need at least two people. ' + INTRO.split('\n').slice(3, 5).join('\n'))];
       const windows = await computeWindows(f, spaceId, at);
-      return [send(spaceId, M.windowsText(windows))];
+      return [send(spaceId, M.windowsText(windows))].concat(windowPoll(f, spaceId, windows));
     }
     if (/^[1-3]$/.test(lower) && liveWindows[spaceId] && liveWindows[spaceId][+lower - 1]) {
       const w = liveWindows[spaceId][+lower - 1];
@@ -306,7 +314,7 @@ export function createBrain(opts = {}) {
     }
     if (/\b(cloudy|clouds|raining|busy|can'?t|cannot|missed|working)\b/.test(lower) && (f.active || f.scheduled)) {
       const windows = await computeWindows(f, spaceId, new Date(at.getTime() + 60 * 60000));
-      return [send(spaceId, "No problem, the Moon comes back. " + M.windowsText(windows, 2))];
+      return [send(spaceId, "No problem, the Moon comes back. " + M.windowsText(windows, 2))].concat(windowPoll(f, spaceId, windows, 2));
     }
 
     // Otherwise, try to learn who is where.
@@ -332,13 +340,15 @@ export function createBrain(opts = {}) {
     const out = ['Got it: ' + roster(f) + '.'];
     const me = bySender(f, evt.senderId);
     if (me && me.name === UNNAMED) out.push('What should I call you? Say "call me" and your name.');
+    let poll = [];
     if (f.members.length >= 2) {
       const windows = await computeWindows(f, spaceId, at);
       out.push('\n' + M.windowsText(windows));
+      poll = windowPoll(f, spaceId, windows);
     } else {
       out.push('Who else? Tell me where they are.');
     }
-    return [send(spaceId, out.join('\n'))];
+    return [send(spaceId, out.join('\n'))].concat(poll);
   }
 
   function tick(at = new Date()) {
