@@ -11,6 +11,7 @@ All work happened during the HackWashU Fall AI Build Challenge build window. Git
 | 2026-09-26 23:26 UTC | Sat evening | Web demo, tests (9 passing), README, pitch, Devpost draft. First commits. |
 | 2026-09-27 02:31 UTC | Sat 9:31 PM | Second session (Claude Code, now with network). Re-ran tests (9 passing) and `npm run demo`. Committed the world map (`web/land-110m.json`) so the map no longer depends on a CDN. |
 | 2026-09-27 02:36 UTC | Sat 9:36 PM | Turned on GitHub Pages (main, root): https://bomardchavit.github.io/washuhack26/. Checked it in headless Chrome: the map loads from the site itself, all fonts load, and the only console error was a missing favicon, so we added one. |
+| 2026-09-27 02:48 UTC | Sat 9:48 PM | Photon adapter checked against the installed spectrum-ts 12.10 type definitions and fixed. iMessage senders have no display name, so the brain now asks "what should I call you?". `.env` is now actually loaded. Reactions go to the photo that triggered them. Scheduled moments survive a restart (`space.get`). Sender handles are hashed before storage. Tested through the real terminal provider: plain mode, the interactive tuichat UI in a pseudo-terminal, and a new end-to-end test (`test/photon.test.mjs`) with a scripted stand-in for tuichat, so two family members can send photos. 10 tests passing. |
 
 ## How we built it
 

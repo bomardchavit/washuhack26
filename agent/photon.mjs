@@ -1,83 +1,123 @@
 #!/usr/bin/env node
-// Same Moon over iMessage, via Photon Spectrum (https://photon.codes).
+// Same Moon over iMessage, via Photon Spectrum (https://photon.codes/spectrum).
 //
 //   npm install
-//   PHOTON_PROJECT_ID=... PHOTON_PROJECT_SECRET=... ANTHROPIC_API_KEY=... npm run agent
-//   SAME_MOON_TERMINAL=1 npm run agent     # Photon's terminal provider, no credentials needed
+//   cp .env.example .env                    # PHOTON_PROJECT_ID, PHOTON_PROJECT_SECRET, optional ANTHROPIC_API_KEY
+//   npm run agent                           # iMessage
+//   SAME_MOON_TERMINAL=1 npm run agent      # Photon's terminal chat (tuichat), no credentials needed
+//   SAME_MOON_CLOCK=2026-09-27T10:59:00Z    # rehearsal: start the clock there; moments are labeled [Simulation]
 //
-// API used (from Photon's docs): Spectrum({ projectId, projectSecret, providers }),
-// `for await (const [space, message] of app.messages)`, space.send(string),
-// space.responding(fn) for typing indicators, message.react(emoji).
+// Checked against the spectrum-ts 12.10 type definitions (node_modules/@spectrum-ts/core):
+//   app.messages yields [space, message]; space.id; message.sender?.id (users carry no display name);
+//   message.content is {type:'text', text} | {type:'attachment', name, mimeType, read()} |
+//   {type:'poll_option', option:{title}, selected} | reactions, typing, ...;
+//   app.send(space, content) takes a string or a builder; space.responding(fn) shows the typing indicator;
+//   message.react(emoji); <provider>(app).space.get(id) rebuilds a Space after a restart.
 // If the SDK changes shape, only this file needs updating; the brain is platform-agnostic.
-import { Spectrum } from 'spectrum-ts';
+import './env.mjs';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { Spectrum, poll } from 'spectrum-ts';
 import { createBrain } from './brain.mjs';
 import { createLLM } from './llm.mjs';
 import { fileStore } from './store.mjs';
 
 const projectId = process.env.PHOTON_PROJECT_ID || process.env.PROJECT_ID;
 const projectSecret = process.env.PHOTON_PROJECT_SECRET || process.env.PROJECT_SECRET;
-const useTerminal = process.env.SAME_MOON_TERMINAL === '1' || !projectId;
+const useTerminal = process.env.SAME_MOON_TERMINAL === '1' || !projectId || !projectSecret;
 
-const providers = [];
-if (useTerminal) {
-  const { terminal } = await import('spectrum-ts/providers/terminal');
-  providers.push(terminal.config());
-} else {
-  const { imessage } = await import('spectrum-ts/providers/imessage');
-  providers.push(imessage.config());
-}
+const clockOffset = process.env.SAME_MOON_CLOCK ? Date.parse(process.env.SAME_MOON_CLOCK) - Date.now() : 0;
+if (Number.isNaN(clockOffset)) throw new Error('SAME_MOON_CLOCK must be an ISO time, like 2026-09-27T10:59:00Z');
+const now = () => new Date(Date.now() + clockOffset);
 
-const app = await Spectrum(useTerminal ? { providers } : { projectId, projectSecret, providers });
+const provider = useTerminal
+  ? (await import('spectrum-ts/providers/terminal')).terminal
+  : (await import('spectrum-ts/providers/imessage')).imessage;
+const app = await Spectrum({
+  ...(useTerminal ? {} : { projectId, projectSecret }),
+  providers: [provider.config()],
+  options: { flattenGroups: true } // a photo sent together with text arrives as separate messages
+});
+
+// Terminal runs get their own store so rehearsals never touch a real family's schedule.
+const storeFile = process.env.SAME_MOON_STORE ||
+  fileURLToPath(new URL(useTerminal ? 'data/families-terminal.json' : 'data/families.json', import.meta.url));
 const llm = createLLM();
-const brain = createBrain({ store: fileStore(), llm });
-const spaces = new Map();   // spaceId -> live Space, so the scheduler can post later
-const lastMessage = new Map(); // spaceId -> last inbound message (for reactions)
+const brain = createBrain({
+  store: fileStore(storeFile), llm, rehearsal: clockOffset !== 0,
+  useNetwork: process.env.SAME_MOON_OFFLINE !== '1' // offline: built-in cities only, no cloud forecast
+});
+const spaces = new Map(); // spaceId -> Space, so the scheduler can post later
 
-console.log(`Same Moon is listening on ${useTerminal ? 'the terminal' : 'iMessage'}${llm ? ` with ${llm.model}` : ' (no ANTHROPIC_API_KEY: rules only)'}.`);
+console.log(`Same Moon is listening on ${useTerminal ? 'the terminal' : 'iMessage'}` +
+  (llm ? ` with ${llm.model}` : ' (no ANTHROPIC_API_KEY: rules only)') +
+  (clockOffset ? `. Rehearsal clock: ${now().toISOString()}` : '') + '.');
 
-function spaceIdOf(space) {
-  return String(space.id ?? space.spaceId ?? space.chatId ?? 'default');
+// A stable anonymous id per person: phone numbers and emails never reach the store.
+function personId(user) {
+  return user && user.id ? createHash('sha256').update(String(user.id)).digest('hex').slice(0, 16) : 'unknown';
 }
 
-async function deliver(actions) {
+async function spaceFor(spaceId) {
+  let space = spaces.get(spaceId);
+  if (!space) {
+    space = await provider(app).space.get(spaceId); // e.g. a moment scheduled before a restart
+    spaces.set(spaceId, space);
+  }
+  return space;
+}
+
+const IMAGE = /^image\//i, IMAGE_NAME = /\.(heic|heif|jpe?g|png|webp|gif)$/i;
+
+/** Translate a Spectrum message into a brain event, or null for things the brain doesn't need. */
+function toEvent(spaceId, message) {
+  const c = message.content || {};
+  const evt = { spaceId, senderId: personId(message.sender), at: now() };
+  if (c.type === 'text') evt.text = c.text;
+  else if (c.type === 'attachment' && (IMAGE.test(c.mimeType || '') || IMAGE_NAME.test(c.name || ''))) {
+    evt.attachment = { name: c.name, mimeType: c.mimeType, read: () => c.read() };
+  } else if (c.type === 'poll_option' && c.selected) {
+    const pick = /^(\d)\)/.exec(c.option && c.option.title || ''); // our options start with "1)", "2)", ...
+    if (!pick) return null;
+    evt.text = pick[1];
+  } else return null; // reactions, typing, stickers, un-votes, ...
+  return evt;
+}
+
+async function deliver(actions, inbound) {
   for (const a of actions) {
-    const space = spaces.get(a.spaceId);
-    if (!space) continue;
     try {
-      if (a.type === 'send') await space.send(a.text);
-      if (a.type === 'react') {
-        const msg = lastMessage.get(a.spaceId);
-        if (msg && typeof msg.react === 'function') await msg.react(a.emoji);
-      }
+      const space = await spaceFor(a.spaceId);
+      if (a.type === 'send') await app.send(space, a.text);
+      else if (a.type === 'react' && inbound) await inbound.react(a.emoji);
+      else if (a.type === 'poll' && !useTerminal) await app.send(space, poll(a.title, a.options)); // "reply 1-3" was already sent
     } catch (err) {
-      console.error('deliver failed:', err.message);
+      console.error(`Could not ${a.type}:`, err && err.message || err);
     }
   }
 }
 
-// Scheduler: fire moments exactly when the Moon is up for everyone.
-setInterval(() => { deliver(brain.tick(new Date())).catch((e) => console.error(e)); }, 20_000);
+// Scheduler: fire each moment when the Moon is up for everyone.
+const timer = setInterval(() => {
+  deliver(brain.tick(now())).catch((err) => console.error('tick failed:', err));
+}, 20_000);
+
+async function stop() {
+  clearInterval(timer);
+  await app.stop().catch(() => {});
+}
+process.once('SIGINT', () => stop().then(() => process.exit(0)));
+process.once('SIGTERM', () => stop().then(() => process.exit(0)));
 
 for await (const [space, message] of app.messages) {
-  const spaceId = spaceIdOf(space);
-  spaces.set(spaceId, space);
-  lastMessage.set(spaceId, message);
-  const c = message.content || {};
-  const evt = {
-    spaceId,
-    senderId: String(message.sender?.id ?? 'unknown'),
-    senderName: message.sender?.name || message.sender?.displayName || undefined,
-    at: new Date()
-  };
-  if (c.type === 'text') evt.text = c.text;
-  else if (c.type === 'attachment' || c.type === 'image' || c.type === 'photo') evt.attachment = { name: c.name, mimeType: c.mimeType };
-  else continue; // reactions, typing, etc.
-
+  if (message.direction === 'outbound' || (message.sender && message.sender.kind === 'agent')) continue;
+  spaces.set(space.id, space);
+  const evt = toEvent(space.id, message);
+  if (!evt) continue;
   try {
-    const actions = await brain.handle(evt);
-    if (typeof space.responding === 'function') await space.responding(() => deliver(actions));
-    else await deliver(actions);
+    await space.responding(async () => deliver(await brain.handle(evt), message));
   } catch (err) {
     console.error('handle failed:', err);
   }
 }
+await stop();

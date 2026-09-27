@@ -5,6 +5,7 @@
 // In interactive mode:  type as Ethan by default;  "@mom 我在上海" speaks as Mom;
 //   "photo @mom" sends a photo as Mom;  "clock 2026-09-27T11:05Z" moves time and runs the scheduler.
 import readline from 'node:readline';
+import './env.mjs';
 import { createBrain } from './brain.mjs';
 import { createLLM } from './llm.mjs';
 

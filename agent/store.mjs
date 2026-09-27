@@ -1,8 +1,9 @@
 // Same Moon: tiny JSON file store so families and schedules survive restarts.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export function fileStore(file = path.join(path.dirname(new URL(import.meta.url).pathname), 'data', 'families.json')) {
+export function fileStore(file = fileURLToPath(new URL('data/families.json', import.meta.url))) {
   return {
     load() {
       try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; }

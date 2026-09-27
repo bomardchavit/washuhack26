@@ -29,6 +29,10 @@ export const HELP = [
   '"call me Ethan", "night owl", "remove Jia", "stop", "start"'
 ].join('\n');
 
+// iMessage gives us a sender's handle but not their name, so the person who sets things up
+// starts as "You" until they say "call me Ethan".
+const UNNAMED = 'You';
+
 export function memoryStore() {
   let data = {};
   return { load: () => data, save: (d) => { data = d; } };
@@ -43,6 +47,7 @@ export function createBrain(opts = {}) {
   const llm = opts.llm || null;
   const useNetwork = opts.useNetwork !== false;
   const searchHours = opts.searchHours || 72;
+  const rehearsal = !!opts.rehearsal; // clock moved forward for a rehearsal: label every moment as a simulation
   const families = store.load() || {};
   const liveWindows = {}; // spaceId -> last computed windows (not persisted)
 
@@ -74,7 +79,7 @@ export function createBrain(opts = {}) {
         if (m) m.id = evt.senderId;
       }
       if (!m) {
-        m = { id: evt.senderId || null, name: evt.senderName || 'You', lang: 'en', nightOwl: false };
+        m = { id: evt.senderId || null, name: evt.senderName || UNNAMED, lang: 'en', nightOwl: false };
         f.members.push(m);
       }
     } else {
@@ -123,7 +128,8 @@ export function createBrain(opts = {}) {
       const lookups = await Promise.all(ppl.map((p) => Online.cloudCover(p.lat, p.lon)));
       cloudAt = (j, date) => lookups[j](date);
     }
-    const windows = W.findSharedWindows(ppl, { start: at, hours: searchHours, cloudAt });
+    const start = new Date(Math.floor(at.getTime() / 300000) * 300000); // 5-minute grid: "6:05 AM", not "6:03 AM"
+    const windows = W.findSharedWindows(ppl, { start, hours: searchHours, cloudAt });
     liveWindows[spaceId] = windows;
     return windows;
   }
@@ -232,17 +238,20 @@ export function createBrain(opts = {}) {
     }
 
     let mm;
-    if ((mm = text.match(/^call me\s+(.+)$/i))) {
+    if ((mm = text.match(/^(?:call me|my name is|my name's)\s+(.+)$/i))) {
       const me = bySender(f, evt.senderId);
       if (!me) return [send(spaceId, 'Tell me your city first, like "I\'m in St. Louis".')];
+      const oldName = me.name;
       me.name = mm[1].trim().replace(/[.!]$/, ''); save();
+      (liveWindows[spaceId] || []).forEach((w) => w.people.forEach((p) => { if (p.person.name === oldName) p.person.name = me.name; }));
       return [send(spaceId, 'Nice to meet you, ' + me.name + '.')];
     }
     if ((mm = text.match(/^remove\s+(.+)$/i))) {
       const target = byName(f, mm[1].trim());
       if (!target) return [send(spaceId, "I don't have anyone called " + mm[1].trim() + '.')];
       f.members = f.members.filter((x) => x !== target); save();
-      return [send(spaceId, 'Removed ' + target.name + '. ' + (f.members.length ? 'Now: ' + roster(f) + '.' : ''))];
+      delete liveWindows[spaceId]; // those times included them
+      return [send(spaceId, 'Removed ' + target.name + '. ' + (f.members.length ? 'Now: ' + roster(f) + '. Say "when" for new times.' : ''))];
     }
     if (/night owl/i.test(lower)) {
       const target = f.members.find((x) => lower.includes(x.name.toLowerCase())) || bySender(f, evt.senderId);
@@ -311,6 +320,8 @@ export function createBrain(opts = {}) {
       return [send(spaceId, bound && me ? 'Welcome, ' + me.name + ". You're all set." : 'I already have that: ' + roster(f) + '.')];
     }
     const out = ['Got it: ' + roster(f) + '.'];
+    const me = bySender(f, evt.senderId);
+    if (me && me.name === UNNAMED) out.push('What should I call you? Say "call me" and your name.');
     if (f.members.length >= 2) {
       const windows = await computeWindows(f, spaceId, at);
       out.push('\n' + M.windowsText(windows));
@@ -329,7 +340,7 @@ export function createBrain(opts = {}) {
         s.sent = true;
         f.active = { start: s.start, end: s.end, simulated: false };
         f.shots = []; f.postcardSent = false;
-        actions.push(send(spaceId, momentFor(f, at, new Date(s.end), false)));
+        actions.push(send(spaceId, momentFor(f, at, new Date(s.end), rehearsal)));
       } else if (s && s.sent && !s.closed && at >= new Date(new Date(s.end).getTime() + 10 * 60000)) {
         s.closed = true; f.active = null;
         const next = astro.nextFullMoon(at);
