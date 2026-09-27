@@ -10,6 +10,7 @@ All work happened during the HackWashU Fall AI Build Challenge build window. Git
 | 2026-09-26 ~23:00 | Sat 6:00 PM | Group-chat brain, offline simulator, Photon iMessage adapter, optional Claude layer. |
 | 2026-09-26 23:26 UTC | Sat evening | Web demo, tests (9 passing), README, pitch, Devpost draft. First commits. |
 | 2026-09-27 02:31 UTC | Sat 9:31 PM | Second session (Claude Code, now with network). Re-ran tests (9 passing) and `npm run demo`. Committed the world map (`web/land-110m.json`) so the map no longer depends on a CDN. |
+| 2026-09-27 02:36 UTC | Sat 9:36 PM | Turned on GitHub Pages (main, root): https://bomardchavit.github.io/washuhack26/. Checked it in headless Chrome: the map loads from the site itself, all fonts load, and the only console error was a missing favicon, so we added one. |
 
 ## How we built it
 
