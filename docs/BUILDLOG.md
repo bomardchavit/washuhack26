@@ -9,6 +9,7 @@ All work happened during the HackWashU Fall AI Build Challenge build window. Git
 | 2026-09-26 ~18:30 | Sat 1:30 PM | Shared-window finder, 7-language messages, family sentence parser. |
 | 2026-09-26 ~23:00 | Sat 6:00 PM | Group-chat brain, offline simulator, Photon iMessage adapter, optional Claude layer. |
 | 2026-09-26 23:26 UTC | Sat evening | Web demo, tests (9 passing), README, pitch, Devpost draft. First commits. |
+| 2026-09-27 02:31 UTC | Sat 9:31 PM | Second session (Claude Code, now with network). Re-ran tests (9 passing) and `npm run demo`. Committed the world map (`web/land-110m.json`) so the map no longer depends on a CDN. |
 
 ## How we built it
 
