@@ -14,6 +14,8 @@
 
 **Team:** Ardchavit Pattanapaisal (bomardchavit), solo. Verified against Devpost and confirmed by the creator.
 
+**Thumbnail:** saved using docs/img/web-hero.jpg and verified in the project overview.
+
 **Video:** pending recording and YouTube link; field left empty.
 
 **Gallery:** uploaded all four existing screenshots, in this order: web-hero.jpg, web-postcard.jpg, web-timeline-map.jpg, web-phone.jpg. Captions identify the web demo and example postcard.
