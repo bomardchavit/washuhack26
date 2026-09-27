@@ -29,6 +29,23 @@ export const HELP = [
   '"call me Ethan", "night owl", "remove Jia", "stop", "start"'
 ].join('\n');
 
+/**
+ * The model may only repeat numbers the engine computed: every clock time ("6:45"), angle ("23°")
+ * and percentage ("99%") in its answer has to appear in the facts it was given, or we don't send it.
+ */
+export function grounded(answer, facts) {
+  const known = JSON.stringify(facts);
+  const clock = new Set(); // "7:00 PM" in the facts allows "7:00" and "19:00" in the answer
+  for (const [, h, m, ap] of known.matchAll(/(\d{1,2}):(\d{2})(?:\s?([AP]M))?/g)) {
+    clock.add(+h + ':' + m);
+    if (ap) clock.add((+h % 12 + (ap === 'PM' ? 12 : 0)) + ':' + m);
+  }
+  const numbers = new Set(known.match(/\d+/g) || []);
+  const times = [...String(answer).matchAll(/\b(\d{1,2}):(\d{2})\b/g)].map(([, h, m]) => +h + ':' + m);
+  const amounts = String(answer).match(/\d+(?=\s*(?:°|%|degrees?\b|percent\b|度))/gi) || [];
+  return times.every((t) => clock.has(t)) && amounts.every((n) => numbers.has(n));
+}
+
 // iMessage gives us a sender's handle but not their name, so the person who sets things up
 // starts as "You" until they say "call me Ethan".
 const UNNAMED = 'You';
@@ -118,7 +135,8 @@ export function createBrain(opts = {}) {
     for (const p of raw) {
       let city = Cities.find(p.place || '');
       if (!city && useNetwork && p.place) city = await Online.geocode(p.place);
-      if (city) out.push({ self: !!p.self, name: p.self ? null : p.name, city, lang: p.language || null });
+      // Only languages we have templates for; anything else the model says falls back to English.
+      if (city) out.push({ self: !!p.self, name: p.self || typeof p.name !== 'string' ? null : p.name, city, lang: M.LANGS[p.language] ? p.language : null });
     }
     return out;
   }
@@ -324,7 +342,11 @@ export function createBrain(opts = {}) {
     if (!entries.length) entries = await llmEntries(text);
     if (!entries.length) {
       if (llm && f.members.length) {
-        try { return [send(spaceId, await llm.answer(text, factsFor(f, spaceId, at)))]; } catch (e) { /* fall through */ }
+        try {
+          const facts = factsFor(f, spaceId, at);
+          const reply = await llm.answer(text, facts);
+          if (grounded(reply, facts)) return [send(spaceId, reply)];
+        } catch (e) { /* fall through */ }
       }
       return [send(spaceId, f.members.length ? "I didn't catch that. " + HELP : INTRO)];
     }
