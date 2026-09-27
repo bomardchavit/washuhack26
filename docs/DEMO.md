@@ -27,3 +27,32 @@ These are geometry only (Moon at least 5° up for both). Rerun `npm run sim` wit
 - Phone mirrored with QuickTime (File, then New Movie Recording, then pick the iPhone as camera) if the Photon agent is live.
 - To replay a moment live: `SAME_MOON_CLOCK=2026-09-27T10:59:00Z npm run agent` starts the agent's clock just before Sunday's dawn window, and every moment it sends is labeled `[Simulation]`.
 - Fallbacks: `SAME_MOON_TERMINAL=1 npm run agent` (the real agent in Photon's terminal chat), or `npm run demo` in a big terminal font. Never fake a live moment; label simulations.
+
+
+## Recording plan: 2 minutes 30 seconds
+
+Use this version until a real iMessage test is verified. Label terminal footage **Photon terminal provider — simulation**. The sample family is a demo roster, not a claim about the creator's family.
+
+| Time | Screen and narration |
+| --- | --- |
+| 0:00–0:20 | Web hero and St. Louis–Shanghai example. “Different time zones. Same Moon. Families apart can share a moment looking at the Moon, but first it has to be above the horizon for everyone.” |
+| 0:20–0:45 | Show the gold overlap window and each city's local time. “Same Moon calculates the overlap and tells each person when and where to look.” |
+| 0:45–1:05 | Press “Play the next 72 hours” in the web demo. Show the moving moonlit map and family pins. |
+| 1:05–1:45 | Show the terminal agent: enter the sample family, “call me Ardchavit”, “when”, “1”, then “sim”. Show the English and Chinese viewing instructions. Explain that the terminal uses numbered replies; native iMessage polls are still unverified. |
+| 1:45–2:05 | Show the example postcard in the web demo. “The agent also composes a postcard from two people's photos; that two-person flow is covered by the terminal-provider test.” Do not describe these illustrated demo skies as photos from a real family run. |
+| 2:05–2:30 | “The astronomy engine computes the viewing instructions. Optional Claude handles free-form language; its live API and real iMessage delivery are not tested yet. All 24 automated tests pass. Different time zones. Same Moon.” |
+
+Record the terminal segment with paid AI explicitly disabled:
+
+```sh
+ANTHROPIC_API_KEY='' SAME_MOON_TERMINAL=1 SAME_MOON_OFFLINE=1 SAME_MOON_CLOCK=2026-09-27T10:59:00Z npm run agent
+```
+
+Upload the recording to YouTube and paste its link into Devpost. Update the narration only for live tests that actually succeeded. Never show `.env`, API keys, private message history or third-party contact details in the recording.
+
+## Before the user-only iMessage test
+
+- Photon credentials and free promo activation are still pending. Keep secrets in `.env`, not chat or Git.
+- The adapter currently responds to all incoming conversations and resumes stored schedules. It does not yet have a self-only allowlist. Restrict the test to a verified user DM before launching, use a fresh store, and keep the optional paid AI disabled.
+- The SDK can automatically share the project's contact card when profile sync is enabled. Confirm the project is restricted appropriately before starting the live provider.
+- One person sending one photo can verify receipt, tapback and first-photo response; it cannot verify the two-distinct-sender postcard flow. Do not message a second person without permission.

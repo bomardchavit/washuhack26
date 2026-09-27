@@ -17,15 +17,16 @@ All work happened during the HackWashU Fall AI Build Challenge build window. Git
 | 2026-09-27 03:06 UTC | Sat 10:06 PM | Claude layer moved to the official Anthropic SDK. It loads lazily, so the offline demo still needs no install. It has a 15-second timeout and one retry, so a stalled API call can't freeze the chat. Same prompts and model (Claude Haiku 4.5). The brain now enforces "the model never invents numbers": every clock time, angle and percentage in an answer must appear in the engine's facts, or the answer isn't sent. A language code the model makes up now falls back to English instead of crashing the roster. 6 new tests use a mocked `fetch`, so `npm test` needs no key and costs nothing. **Not yet run against the real API** (no key available). 24 tests passing. |
 | 2026-09-27 03:09 UTC | Sat 10:09 PM | Phone layout. Checked in headless Chrome at 360, 390 and 768 px. Long city names were widening the people list, window cards couldn't wrap, and the timeline's hour labels collided. The page now fits every width tested with no horizontal scroll. The timeline thins its labels to fit (6-hourly on desktop, 12-hourly or day names on phones). Desktop canvases are pixel-identical to before. |
 | 2026-09-27 03:13 UTC | Sat 10:13 PM | README, Devpost draft and demo runbook updated to match what has actually been tested: live demo link, screenshots, and a "what's tested / not yet" section. We re-measured the accuracy claims: moonrise and moonset are within 1 minute of the six published times, and the full-moon time is 2.5 minutes off, so "within 2 minutes" became "within 3". The city count is 98, not 95. Correction to the 02:59 entry: iPhone HEIC photos pass through a temporary file for `sips` conversion, which is deleted right away, so photos aren't strictly "never written to disk". |
+| 2026-09-27 05:00 UTC | Sun 12:00 AM CDT | Codex takeover: re-ran all 24 tests with zero skips (local loopback and HEIC conversion required permission outside the sandbox) and the offline demo. Reviewed the Photon adapter without starting iMessage or making paid calls. Confirmed an AM/PM and field-swapping counterexample to the broad AI-number guarantee, and corrected README, Devpost and pitch wording; no application code changed. Saved the existing Fall Devpost draft at 3/4 steps with name, pitch, story, 11 tags, both links and four captioned screenshots. Verified the creator as the only teammate and updated README. Prepared a 2:30 recording plan. Video remains empty, track enrollment unconfirmed (no selector shown), terms unchecked, and final Submit untouched. Live Photon, live Claude and a real family run remain untested. |
 
 ## How we built it
 
-We used Claude (Anthropic) as an AI pair programmer throughout: the team chose the idea, directed the design and reviewed the output, and Claude wrote most of the code. This follows the event rules' guidance to disclose AI tools.
+We used Claude (Anthropic) as an AI pair programmer throughout: the team chose the idea, directed the design and reviewed the output, and Claude wrote most of the code. Codex assisted final verification, documentation, and Devpost draft preparation. This follows the event rules' guidance to disclose AI tools.
 
 ## Still to do (team)
 
 - [x] Push to GitHub and turn on GitHub Pages
 - [ ] Photon: create a project with promo code HACKWITHPHOTON, fill in .env, run `npm run agent`, test in a real iMessage group
 - [ ] Real Harvest Moon run with a family member abroad (see docs/DEMO.md), recorded for the video
-- [ ] Add team names to README and Devpost
+- [x] Add team names to README and Devpost (Ardchavit Pattanapaisal, solo)
 - [ ] Record a 2-minute demo video; submit on Devpost before Sunday 10:00 AM CT (rules page) and select the Photon track

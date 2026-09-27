@@ -51,7 +51,7 @@ Tested:
 - **The astronomy.** Moonrise and moonset match six published St. Louis times for September 2026 to within a minute. The full-moon time is within 3 minutes and the transit altitude within 0.2° (`test/engine.test.js`).
 - **The whole group-chat flow through Photon's real `spectrum-ts` terminal provider.** Two family members send photos and get back the postcard image. `test/photon.test.mjs` scripts it with a stand-in for Photon's terminal chat, and we also ran it by hand in the interactive terminal chat.
 - **The postcard image.** It's composed from JPEG and iPhone HEIC photos. A photo that can't be read becomes that person's sky (`test/postcard.test.mjs`).
-- **The Claude layer, against a mocked API.** This covers the request shape, errors, and the check that answers only repeat engine numbers (`test/llm.test.mjs`).
+- **The Claude layer, against a mocked API.** This covers request shape, errors, selected numeric consistency checks and fallback behavior (`test/llm.test.mjs`).
 - **The web demo in headless Chrome** at desktop and phone widths: no console errors, no horizontal scrolling.
 
 Not tested yet:
@@ -69,7 +69,7 @@ Not tested yet:
 - `engine/messages.js`: direction, height and rising/setting in 7 languages (English, 中文, Español, 한국어, Tiếng Việt, 日本語, Français). Every number comes from the engine.
 - `engine/parse.js`: understands "Mom's in 上海" and "I'm at WashU" without a model. Includes 98 cities, native-script names, and aliases.
 - `agent/brain.mjs`: the conversation. It's platform-agnostic: chat events go in, and actions (send, react, poll, postcard) come out.
-- `agent/llm.mjs` (optional): Claude Haiku 4.5, through the Anthropic SDK, handles messages the rules can't parse. It also answers free-form questions ("why can't Grandma see it now?") from facts the engine hands it. Before an answer goes out, the brain checks that every clock time, angle and percentage in it appears in those facts.
+- `agent/llm.mjs` (optional): Claude Haiku 4.5, through the Anthropic SDK, handles messages the rules can't parse. It also answers free-form questions ("why can't Grandma see it now?") from facts the engine hands it. A basic numeric consistency check rejects some mismatched clock times, angles and percentages. It does not guarantee that a free-form answer is correct: it does not associate a number with a person or field, and some formats are not checked.
 - `agent/photon.mjs`: delivers the brain over iMessage with Photon Spectrum (`spectrum-ts` 12). It sends group messages, reacts to photos, offers polls, sends the postcard as an attachment, and runs a scheduler that fires each moment on time, even after a restart.
 - `web/draw.js` and `agent/postcard.mjs`: the postcard. The web demo and the agent share one drawing function; the agent renders it with `@napi-rs/canvas` and converts iPhone HEIC photos with macOS `sips`.
 - `engine/online.js`: free Open-Meteo lookups for any town on Earth, plus hourly cloud cover. Everything still works offline.
@@ -91,8 +91,8 @@ We don't claim it cures loneliness. We're testing whether a shared, simultaneous
 
 Node.js, plain JavaScript and Canvas (no framework), Photon Spectrum (`spectrum-ts`) for iMessage, Claude Haiku 4.5 through the Anthropic SDK for language understanding, `@napi-rs/canvas` for the postcard image, Open-Meteo for geocoding and cloud forecasts, world-atlas / Natural Earth for the map outline, and Cormorant Garamond and Karla (SIL Open Font License).
 
-**AI disclosure:** this project was built during the event with AI-assisted development (Claude). See `docs/BUILDLOG.md`.
+**AI disclosure:** this project was built during the event with AI-assisted development (Claude), with Codex assisting final verification and submission preparation. See `docs/BUILDLOG.md`.
 
 ## Team
 
-_Add your names here._
+[Ardchavit Pattanapaisal](https://devpost.com/bomardchavit) — solo project.

@@ -9,11 +9,11 @@
 **1:00 Demo (2 min).**
 1. On the projector (iPhone mirrored with QuickTime, or the web demo), type: "I'm at WashU, Mom's in Shanghai and prefers Chinese, Jia's in Toronto."
 2. Show the options, reply "1", then "sim": each person's line appears in their language.
-3. Play the real Harvest Moon footage recorded Sunday dawn: Mom's photo arriving, the "same Moon setting in your west" line, the postcard.
+3. Only if a real dawn run happened and was recorded, show that footage. Otherwise show the clearly labeled terminal-provider simulation and the example web postcard; use the 2:30 recording plan in docs/DEMO.md.
 4. On the web demo, press "Play the next 72 hours": the moonlit half of Earth slides west and the family pins light up.
 
 **3:00 How it works (60 s).**
-- "Physics does the facts, AI does the talking. Our engine matches published moonrise tables to within three minutes; the model never produces a time or a direction."
+- "Physics does the facts, AI does the talking. Our engine matches published moonrise tables to within a minute; deterministic templates generate the viewing instructions. Optional free-form AI answers still need stronger validation."
 - "It lives in iMessage through Photon, so Grandma installs nothing."
 - "City names only, and it messages a few times a month."
 - Say what you don't claim.
@@ -35,4 +35,4 @@
 - **"How accurate is it?"** Within about 3 minutes of published moonrise tables; `npm test` checks it. The remaining error mostly comes from horizons and buildings, which we mention.
 - **"Why not just text a photo?"** Timing. Being told "look now, she's looking too" turns a photo into a shared moment. We designed for presence: live photo relay, each person's own language.
 - **"Would people use it more than once?"** The Moon has a built-in rhythm: full Moons monthly, plus Mid-Autumn, Chuseok, Tsukimi, Diwali and more. It's a ritual, not an engagement loop.
-- **"Where's the AI?"** It reads messy multilingual messages, answers questions grounded in engine facts, and is designed to never state numbers the engine didn't compute.
+- **"Where's the AI?"** It reads messy multilingual messages and answers questions using engine facts. Mocked tests cover selected numeric checks; live Claude calls remain untested and the checks do not guarantee correct answers.
