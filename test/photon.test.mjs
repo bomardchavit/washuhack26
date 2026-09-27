@@ -45,17 +45,24 @@ export function runAgent(script, { clock = '2026-09-26T18:00:00Z', env = {} } = 
 const said = (lines) => lines.filter((l) => l.from === 'agent' && l.text).map((l) => l.text);
 
 test('photon.mjs: setup, naming, schedule, preview, photos and postcard over the Spectrum terminal provider', { skip: !hasSpectrum && 'run npm install first' }, async () => {
-  const photo = path.join(os.tmpdir(), 'same-moon-test-photo.jpg');
-  fs.writeFileSync(photo, Buffer.from('not really a jpeg'));
+  const { createCanvas, loadImage } = await import('@napi-rs/canvas');
+  const photoFile = (name, color) => {
+    const c = createCanvas(600, 800), ctx = c.getContext('2d');
+    ctx.fillStyle = color; ctx.fillRect(0, 0, 600, 800);
+    const file = path.join(os.tmpdir(), name);
+    fs.writeFileSync(file, c.toBuffer('image/jpeg', 90));
+    return file;
+  };
+  const saved = fs.mkdtempSync(path.join(os.tmpdir(), 'same-moon-sent-'));
   const { lines, store } = await runAgent([
     { as: ETHAN, text: "I'm at WashU, Mom's in Shanghai and prefers Chinese, Jia's in Toronto" },
     { as: ETHAN, text: 'call me Ethan' },
     { as: ETHAN, text: '1' },
     { as: ETHAN, text: 'sim' },
     { as: MOM, text: '我在上海' },
-    { as: MOM, photo },
-    { as: ETHAN, photo }
-  ]);
+    { as: MOM, photo: photoFile('mom-moon.jpg', '#c0392b') },
+    { as: ETHAN, photo: photoFile('ethan-moon.jpg', '#2e86c1') }
+  ], { env: { FAKE_TUI_SAVE: saved } });
   const texts = said(lines);
   assert.match(texts[0], /Got it: You in St\. Louis; Mom in Shanghai \(中文\); Jia in Toronto\./);
   assert.match(texts[0], /What should I call you\?/);
@@ -66,6 +73,14 @@ test('photon.mjs: setup, naming, schedule, preview, photos and postcard over the
   assert.ok(texts.some((t) => /^Welcome, Mom\./.test(t)));
   assert.ok(texts.some((t) => /^📷 Mom's Moon, rising over Shanghai/.test(t)));
   assert.ok(texts.some((t) => /11,600 km apart\. One Moon\./.test(t)), 'postcard caption');
+
+  // The postcard image is sent with attachment(), right before its text caption.
+  const cardAt = lines.findIndex((l) => l.attachment && l.attachment.name === 'same-moon-postcard.jpg');
+  const captionAt = lines.findIndex((l) => /11,600 km apart\. One Moon\./.test(l.text || ''));
+  assert.ok(cardAt >= 0 && cardAt < captionAt, 'postcard image before the caption');
+  assert.strictEqual(lines[cardAt].attachment.mimeType, 'image/jpeg');
+  const card = await loadImage(fs.readFileSync(path.join(saved, 'same-moon-postcard.jpg')));
+  assert.deepStrictEqual([card.width, card.height], [1200, 760]);
 
   // Reactions land on the photo that was just sent, not on some other message.
   const photos = lines.filter((l) => l.photo).map((l) => l.id);

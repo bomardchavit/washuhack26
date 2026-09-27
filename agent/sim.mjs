@@ -3,11 +3,17 @@
 //   node agent/sim.mjs            interactive
 //   node agent/sim.mjs --demo     scripted Harvest Moon story (great as a demo fallback)
 // In interactive mode:  type as Ethan by default;  "@mom 我在上海" speaks as Mom;
-//   "photo @mom" sends a photo as Mom;  "clock 2026-09-27T11:05Z" moves time and runs the scheduler.
+//   "photo @mom" sends a photo as Mom ("photo @mom ~/moon.heic" sends a real one; with two real photos
+//   the postcard image is saved to agent/data/postcard.jpg);  "clock 2026-09-27T11:05Z" moves time.
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 import './env.mjs';
 import { createBrain } from './brain.mjs';
 import { createLLM } from './llm.mjs';
+import { composePostcard } from './postcard.mjs';
 
 const demo = process.argv.includes('--demo');
 const offline = process.argv.includes('--offline') || demo;
@@ -18,10 +24,21 @@ const names = { ethan: 'Ethan' };
 
 const dim = (s) => `\x1b[2m${s}\x1b[0m`;
 const moon = (s) => `\x1b[33m${s}\x1b[0m`;
-function print(actions) {
+const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.heic': 'image/heic', '.heif': 'image/heif', '.webp': 'image/webp' };
+
+async function print(actions) {
   for (const a of actions) {
     if (a.type === 'send') console.log(moon('Same Moon') + ': ' + a.text.replace(/\n/g, '\n           ') + '\n');
     if (a.type === 'react') console.log(dim(`  (Same Moon reacted ${a.emoji})`));
+    if (a.type === 'poll') console.log(dim(`  (poll: ${a.title}: ${a.options.join(' | ')})`));
+    if (a.type === 'postcard') {
+      const card = await composePostcard(a.shots);
+      if (!card) { console.log(dim('  (postcard image skipped: npm install first)')); continue; }
+      const out = fileURLToPath(new URL('data/postcard.jpg', import.meta.url));
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, card.buffer);
+      console.log(dim(`  (Same Moon sent the postcard image, saved to ${out})`));
+    }
   }
 }
 
@@ -30,10 +47,17 @@ async function say(line) {
   const at = text.match(/^@(\w+)\s+(.*)$/);
   if (at) { sender = at[1].toLowerCase(); text = at[2]; }
   names[sender] = names[sender] || sender[0].toUpperCase() + sender.slice(1);
-  if (/^photo(\s+@(\w+))?$/i.test(text) || /^photo$/i.test(line.trim())) {
-    const who = (line.match(/@(\w+)/) || [null, sender])[1].toLowerCase();
-    console.log(dim(`${names[who] || who} sent a photo 📷`));
-    return print(await brain.handle({ spaceId: SPACE, senderId: who, senderName: names[who], attachment: { name: 'moon.jpg' }, at: clock }));
+  const ph = text.match(/^photo(?:\s+@(\w+))?(?:\s+(.+))?$/i);
+  if (ph) {
+    const who = (ph[1] || sender).toLowerCase();
+    const file = ph[2] && ph[2].trim().replace(/^['"]|['"]$/g, '').replace(/^~(?=\/)/, os.homedir());
+    let attachment = { name: 'moon.jpg' };
+    if (file) {
+      if (!fs.existsSync(file)) return console.log(dim(`(no file at ${file})`));
+      attachment = { name: path.basename(file), mimeType: MIME[path.extname(file).toLowerCase()] || 'image/jpeg', read: () => fs.promises.readFile(file) };
+    }
+    console.log(dim(`${names[who] || who} sent a photo 📷${file ? ' ' + path.basename(file) : ''}`));
+    return print(await brain.handle({ spaceId: SPACE, senderId: who, senderName: names[who], attachment, at: clock }));
   }
   const c = text.match(/^clock\s+(\S+)$/i);
   if (c) { clock = new Date(c[1]); console.log(dim(`clock -> ${clock.toISOString()}`)); return print(brain.tick(clock)); }

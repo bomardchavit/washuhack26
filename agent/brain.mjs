@@ -50,6 +50,8 @@ export function createBrain(opts = {}) {
   const rehearsal = !!opts.rehearsal; // clock moved forward for a rehearsal: label every moment as a simulation
   const families = store.load() || {};
   const liveWindows = {}; // spaceId -> last computed windows (not persisted)
+  const photos = {}; // spaceId -> { name -> attachment } for the postcard; kept in memory only, never saved
+  const pendingPhotos = {}; // spaceId -> a photo whose sender we're still asking about
 
   const save = () => store.save(families);
   const send = (spaceId, text) => ({ type: 'send', spaceId, text });
@@ -181,6 +183,7 @@ export function createBrain(opts = {}) {
       const unbound = f.members.filter((x) => !x.id);
       if (unbound.length > 1) {
         f.pendingPhoto = { senderId: evt.senderId, at: at.toISOString() }; save();
+        pendingPhotos[spaceId] = evt.attachment;
         return [send(spaceId, 'Beautiful. Who took this, ' + M.listJoin(unbound.map((x) => x.name)).replace(/ and ([^ ]+)$/, ' or $1') + '? Just reply with your name.')];
       }
       return [send(spaceId, 'Beautiful. Who took this? Reply "I\'m in <your city>" so I can add you.')];
@@ -190,6 +193,7 @@ export function createBrain(opts = {}) {
     const { v, motion } = viewLine(person, when);
     f.shots = (f.shots || []).filter((s) => s.name !== m.name);
     f.shots.push({ name: m.name, date: when.toISOString(), rising: v.rising });
+    if (evt.attachment && typeof evt.attachment.read === 'function') (photos[spaceId] = photos[spaceId] || {})[m.name] = evt.attachment;
 
     const others = f.members.filter((x) => x !== m);
     const waiting = others.find((x) => !f.shots.some((s) => s.name === x.name)) || others[0];
@@ -203,9 +207,14 @@ export function createBrain(opts = {}) {
     const actions = [{ type: 'react', spaceId, emoji: '❤️' }, send(spaceId, text)];
     const shooters = new Set(f.shots.map((s) => s.name));
     if (shooters.size >= 2 && !f.postcardSent) {
-      const shots = f.shots.map((s) => ({ person: toPerson(byName(f, s.name)), date: new Date(s.date), rising: s.rising }));
+      const shots = f.shots.filter((s) => byName(f, s.name))
+        .map((s) => ({ person: toPerson(byName(f, s.name)), date: new Date(s.date), rising: s.rising, photo: (photos[spaceId] || {})[s.name] }));
+      // The image goes first when we have both photos; the caption always follows, so the text survives if the image can't be made.
+      const pair = shots.slice(0, 2);
+      if (pair.length === 2 && pair.every((s) => s.photo)) actions.push({ type: 'postcard', spaceId, shots: pair });
       actions.push(send(spaceId, M.postcardCaption(shots)));
       f.postcardSent = true;
+      delete photos[spaceId];
     }
     save();
     return actions;
@@ -233,7 +242,8 @@ export function createBrain(opts = {}) {
       if (who && !who.id) {
         who.id = evt.senderId;
         const pending = f.pendingPhoto; delete f.pendingPhoto;
-        return onPhoto(f, Object.assign({}, evt, { attachment: true }), new Date(pending.at));
+        const attachment = pendingPhotos[spaceId] || true; delete pendingPhotos[spaceId];
+        return onPhoto(f, Object.assign({}, evt, { attachment }), new Date(pending.at));
       }
     }
 
@@ -277,7 +287,7 @@ export function createBrain(opts = {}) {
     if (/^[1-3]$/.test(lower) && liveWindows[spaceId] && liveWindows[spaceId][+lower - 1]) {
       const w = liveWindows[spaceId][+lower - 1];
       f.scheduled = { start: w.start.toISOString(), end: w.end.toISOString(), peak: w.peak.toISOString(), sent: false, closed: false };
-      f.shots = []; f.postcardSent = false; save();
+      f.shots = []; f.postcardSent = false; delete photos[spaceId]; save();
       const when = w.people.map((p) => p.person.name + ' at ' + p.startLocal).join('; ');
       return [send(spaceId, 'Locked in 🌕 I\'ll message everyone right when it starts: ' + when + '.\n' + M.physicsLine(w) + '\n\n(Say "sim" to preview that moment now.)')];
     }
@@ -291,7 +301,7 @@ export function createBrain(opts = {}) {
         start = windows[0].start; end = windows[0].end;
       }
       f.active = { start: start.toISOString(), end: end.toISOString(), simulated: true };
-      f.shots = []; f.postcardSent = false; save();
+      f.shots = []; f.postcardSent = false; delete photos[spaceId]; save();
       return [send(spaceId, momentFor(f, start, end, true))];
     }
     if (/\b(cloudy|clouds|raining|busy|can'?t|cannot|missed|working)\b/.test(lower) && (f.active || f.scheduled)) {
@@ -339,7 +349,7 @@ export function createBrain(opts = {}) {
       if (s && !s.sent && at >= new Date(s.start)) {
         s.sent = true;
         f.active = { start: s.start, end: s.end, simulated: false };
-        f.shots = []; f.postcardSent = false;
+        f.shots = []; f.postcardSent = false; delete photos[spaceId];
         actions.push(send(spaceId, momentFor(f, at, new Date(s.end), rehearsal)));
       } else if (s && s.sent && !s.closed && at >= new Date(new Date(s.end).getTime() + 10 * 60000)) {
         s.closed = true; f.active = null;

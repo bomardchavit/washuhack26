@@ -17,9 +17,10 @@
 import './env.mjs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { Spectrum, poll } from 'spectrum-ts';
+import { Spectrum, attachment, poll } from 'spectrum-ts';
 import { createBrain } from './brain.mjs';
 import { createLLM } from './llm.mjs';
+import { composePostcard } from './postcard.mjs';
 import { fileStore } from './store.mjs';
 
 const projectId = process.env.PHOTON_PROJECT_ID || process.env.PROJECT_ID;
@@ -84,6 +85,11 @@ function toEvent(spaceId, message) {
   return evt;
 }
 
+async function sendPostcard(space, shots) {
+  const card = await composePostcard(shots);
+  if (card) await app.send(space, attachment(card.buffer, { name: card.name, mimeType: card.mimeType }));
+}
+
 async function deliver(actions, inbound) {
   for (const a of actions) {
     try {
@@ -91,6 +97,7 @@ async function deliver(actions, inbound) {
       if (a.type === 'send') await app.send(space, a.text);
       else if (a.type === 'react' && inbound) await inbound.react(a.emoji);
       else if (a.type === 'poll' && !useTerminal) await app.send(space, poll(a.title, a.options)); // "reply 1-3" was already sent
+      else if (a.type === 'postcard') await sendPostcard(space, a.shots); // the text caption follows as its own action
     } catch (err) {
       console.error(`Could not ${a.type}:`, err && err.message || err);
     }

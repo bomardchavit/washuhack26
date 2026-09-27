@@ -6,7 +6,7 @@
   "license": "MIT",
   "engines": { "node": ">=18.17" },
   "scripts": {
-    "test": "node --test test/engine.test.js test/agent.test.mjs test/photon.test.mjs",
+    "test": "node --test test/engine.test.js test/agent.test.mjs test/postcard.test.mjs test/photon.test.mjs",
     "demo": "node agent/sim.mjs --demo",
     "sim": "node agent/sim.mjs",
     "agent": "node agent/photon.mjs",
@@ -14,6 +14,7 @@
     "fetch-map": "node scripts/fetch-map.mjs"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.9",
     "spectrum-ts": "^12.7.0"
   }
 }
