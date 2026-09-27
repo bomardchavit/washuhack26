@@ -20,6 +20,7 @@ All work happened during the HackWashU Fall AI Build Challenge build window. Git
 | 2026-09-27 05:00 UTC | Sun 12:00 AM CDT | Codex takeover: re-ran all 24 tests with zero skips (local loopback and HEIC conversion required permission outside the sandbox) and the offline demo. Reviewed the Photon adapter without starting iMessage or making paid calls. Confirmed an AM/PM and field-swapping counterexample to the broad AI-number guarantee, and corrected README, Devpost and pitch wording; no application code changed. Saved the existing Fall Devpost draft at 3/4 steps with name, pitch, story, 11 tags, both links and four captioned screenshots. Verified the creator as the only teammate and updated README. Prepared a 2:30 recording plan. Video remains empty, track enrollment unconfirmed (no selector shown), terms unchecked, and final Submit untouched. Live Photon, live Claude and a real family run remain untested. |
 | 2026-09-27 05:05 UTC | Sun 12:05 AM CDT | Added the existing docs/img/web-hero.jpg as the Devpost project thumbnail, saved the overview, and verified that the thumbnail persisted after reopening it. Project remains a draft; final Submit was not pressed. |
 | 2026-09-27 05:20 UTC | Sun 12:20 AM CDT | Created a local 2:31 narrated demo video from actual web-demo captures, including the animated map, language preview and clearly labeled illustrated postcard. Added free local macOS Samantha narration, captions and a verification card. Exported 1080p H.264/AAC, decoded it without errors and inspected representative frames. Recorded the script and limitations in docs/VIDEO.md. No paid API call, live iMessage footage, YouTube upload or final Devpost submission occurred. |
+| 2026-09-27 05:29 UTC | Sun 12:29 AM CDT | With explicit user approval, uploaded Same-Moon-Demo.mp4 to YouTube as Unlisted (https://youtu.be/C0xMxBDkJ1E), with subscriber notifications disabled and generated narration disclosed. YouTube reported the video published and copyright checks clear. Saved its link in the existing Devpost draft and visually verified the embedded video title on the project preview. Terms remained unchecked and final Submit untouched. |
 
 ## How we built it
 
@@ -31,4 +32,5 @@ We used Claude (Anthropic) as an AI pair programmer throughout: the team chose t
 - [ ] Photon: create a project with promo code HACKWITHPHOTON, fill in .env, run `npm run agent`, test in a real iMessage group
 - [ ] Real Harvest Moon run with a family member abroad (see docs/DEMO.md), recorded for the video
 - [x] Add team names to README and Devpost (Ardchavit Pattanapaisal, solo)
-- [ ] Record a 2-minute demo video; submit on Devpost before Sunday 10:00 AM CT (rules page) and select the Photon track
+- [x] Record and upload the narrated demo video; save its link in the Devpost draft
+- [ ] Submit on Devpost before Sunday 10:00 AM CT (rules page) and confirm Photon track enrollment

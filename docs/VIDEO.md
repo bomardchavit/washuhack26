@@ -8,7 +8,7 @@ Actual captures of the working GitHub Pages web demo: family setup, viewing wind
 
 The voiceover is computer-generated with the installed macOS Samantha voice, using no paid API. Browser footage was sampled at about 10 frames per second, edited into a 30 fps video with holds where needed for narration, and given burned-in captions. Native macOS screen recording stalled and the computer-use tool did not permit Terminal app control; the finished video uses the recorded web demo rather than terminal footage.
 
-The MP4 decoded without errors. Its resolution, duration, audio track, and representative frames were checked. It has not been uploaded to YouTube or added to Devpost; the project remains a draft.
+The MP4 decoded without errors. Its resolution, duration, audio track, and representative frames were checked. With the user's approval, it was uploaded to YouTube as **Unlisted**: https://youtu.be/C0xMxBDkJ1E. The link was saved in the Devpost video field, and the embedded video was verified on the project preview. The project remains a draft; final Submit was not pressed.
 
 ## Narration and edit
 
@@ -47,4 +47,3 @@ The project includes a Photon Spectrum chat adapter, a scheduler, seven language
 ### 2:19 — A shared moment, across the world
 
 Same Moon is built around a simple idea: a photo can show what someone saw, but a shared moment lets you look up together. Different time zones. Same Moon.
-

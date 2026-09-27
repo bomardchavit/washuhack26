@@ -16,7 +16,7 @@
 
 **Thumbnail:** saved using docs/img/web-hero.jpg and verified in the project overview.
 
-**Video:** local narrated demo recorded (about 2:31, 1080p); see docs/VIDEO.md. YouTube upload and URL are still pending, so the field remains empty.
+**Video:** https://youtu.be/C0xMxBDkJ1E — narrated demo (about 2:31, 1080p), uploaded as Unlisted with user approval. Saved in the Devpost draft and verified in the project preview; see docs/VIDEO.md. Final submission remains pending.
 
 **Gallery:** uploaded all four existing screenshots, in this order: web-hero.jpg, web-postcard.jpg, web-timeline-map.jpg, web-phone.jpg. Captions identify the web demo and example postcard.
 
